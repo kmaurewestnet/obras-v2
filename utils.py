@@ -319,7 +319,7 @@ def get_naps():
 
     values = [
         (d["nap"], d["bocas"], d["ocupacion"], d["precinto"], d["cliente"], d["id"])
-        for d in detalles
+        for d in detalles if d["id"] is not None
     ]
     conn = get_records_conn()
     with conn.cursor() as cur:
