@@ -5,18 +5,17 @@ Se ejecuta el día 28 de cada mes via cron en el servidor Debian.
 
 ## Descripción
 
-El script recopila datos de obras en curso desde **Odoo** (via DB local `datosodoo`),
+El script recopila datos de obras en curso desde **Odoo**,
 cruza información de NAPs desde **Soldef**, clientes desde **Gestion** y **Napear**,
 y registra todo en la base de datos `records`.
 
-### Flujo general
 
 ### Flujo general
 
 El nuevo esquema arquitectónico (v2) funciona como un embudo que procesa **únicamente obras finalizadas**:
 
 ```
-Odoo DB (datosodoo) + Odoo API (XML-RPC)
+Odoo DB + Odoo API (XML-RPC)
     Obtención de IDs locales + Filtro de Etapa "OBRAS FINALIZADAS"
              │
              ▼
