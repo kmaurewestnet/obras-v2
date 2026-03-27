@@ -33,11 +33,11 @@ log = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def cardid_list():
-    """Retorna lista de IDs de tareas de Odoo (antes leía de Planka)."""
+    """Retorna lista de IDs de tareas de Odoo (MySQL)."""
     conn = get_odoo_conn()
     with conn.cursor() as cur:
         try:
-            cur.execute("SELECT id::text FROM odoo_tasks;")
+            cur.execute("SELECT CAST(id AS CHAR) FROM odoo_tasks;")
         except Exception as exc:
             log.error("cardid_list — error SQL: %s", exc)
             return []
@@ -66,16 +66,13 @@ def cardid_details(ids: list):
     if not ids:
         return 1
 
+    placeholders = ",".join(["%s"] * len(ids))
     conn_odoo = get_odoo_conn()
     with conn_odoo.cursor() as cur:
         try:
             cur.execute(
-                """
-                SELECT id::text, name
-                FROM odoo_tasks
-                WHERE id = ANY(%s);
-                """,
-                (ids,),
+                f"SELECT CAST(id AS CHAR), name FROM odoo_tasks WHERE id IN ({placeholders});",
+                ids,
             )
         except Exception as exc:
             log.error("cardid_details — error SQL Odoo: %s", exc)
@@ -93,6 +90,9 @@ def cardid_details(ids: list):
             if DRY_RUN:
                 log.info("[DRY_RUN] cardid_details: insertaría %d filas en cards", len(values))
             else:
+                # execute_values is a psycopg2 function. For MySQL, we'd typically use executemany
+                # or a custom batch insert if the driver doesn't support execute_values directly.
+                # Assuming get_records_conn() is PostgreSQL, this part remains as is.
                 execute_values(
                     cur,
                     """
@@ -116,34 +116,36 @@ def card_descriptions(ids: list):
     if not ids:
         return 1
 
+    # For MySQL, use %s placeholders for IN clause
+    placeholders = ",".join(["%s"] * len(ids))
     conn_odoo = get_odoo_conn()
     with conn_odoo.cursor() as cur:
         try:
             cur.execute(
-                """
+                f"""
                 SELECT
-                    t.id::text,
+                    CAST(t.id AS CHAR),
                     t.name,
                     MAX(CASE WHEN p.label = 'Tipo de obra'
                         THEN COALESCE(p.selection_label, p.value_text) END)   AS tipo_obra,
                     MAX(CASE WHEN p.label = 'Coordenadas'
                         THEN p.value_text END)                                 AS geo,
-                    NULL::text                                                  AS cantidad,
+                    NULL                                                        AS cantidad,
                     MAX(CASE WHEN p.label = 'Permisos OK'
-                        THEN p.value_boolean::text END)                        AS posteo,
-                    MAX(CASE WHEN p.label = 'Fecha solicitud cotizaciòn'
-                        THEN p.value_date::text END)                           AS fecha_presupuesto,
-                    MAX(CASE WHEN p.label = 'Cotizaciòn OBRA USD:'
-                        THEN p.value_number::text END)                         AS valor_presupuesto,
+                        THEN CAST(p.value_boolean AS CHAR) END)                AS posteo,
+                    MAX(CASE WHEN p.label = 'Fecha solicitud cotizaci\u00f3n'
+                        THEN CAST(p.value_date AS CHAR) END)                   AS fecha_presupuesto,
+                    MAX(CASE WHEN p.label = 'Cotizaci\u00f3n OBRA USD:'
+                        THEN CAST(p.value_number AS CHAR) END)                 AS valor_presupuesto,
                     MAX(CASE WHEN p.label = 'Nomenclatura NAPs'
                         THEN p.value_text END)                                 AS naps,
-                    NULL::text                                                  AS solicitado_por
+                    NULL                                                        AS solicitado_por
                 FROM odoo_tasks t
                 JOIN odoo_task_properties p ON p.task_id = t.id
-                WHERE t.id = ANY(%s) AND p.type != 'separator'
+                WHERE t.id IN ({placeholders}) AND p.type != 'separator'
                 GROUP BY t.id, t.name;
                 """,
-                (ids,),
+                ids,
             )
         except Exception as exc:
             log.error("card_descriptions — error SQL Odoo: %s", exc)

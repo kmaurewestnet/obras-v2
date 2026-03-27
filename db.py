@@ -128,13 +128,13 @@ def get_nap_conn():
     return _nap_conn
 
 
-# ── Odoo DB local (PostgreSQL) ─────────────────────────────────────────────────
+# ── Odoo DB local (MySQL) ──────────────────────────────────────────────────────
 def get_odoo_conn():
     global _odoo_conn
-    if _odoo_conn is None or _odoo_conn.closed:
-        _odoo_conn = psycopg2.connect(
+    if _odoo_conn is None or not _odoo_conn.is_connected():
+        _odoo_conn = mysql.connector.connect(
             host=os.getenv("DB_ODOO_HOST"),
-            port=os.getenv("DB_ODOO_PORT", "5432"),
+            port=int(os.getenv("DB_ODOO_PORT", "3306")),
             user=os.getenv("DB_ODOO_USER"),
             password=os.getenv("DB_ODOO_PASS"),
             database=os.getenv("DB_ODOO_NAME"),
@@ -145,13 +145,13 @@ def get_odoo_conn():
 # ── Cerrar todas las conexiones ────────────────────────────────────────────────
 def close_all():
     """Cierra todas las conexiones abiertas. Llamar al final de main.py."""
-    for conn in [_records_conn, _soldef_conn, _mesa_conn, _mesa_bw_conn, _odoo_conn]:
+    for conn in [_records_conn, _soldef_conn, _mesa_conn, _mesa_bw_conn]:
         try:
             if conn and not conn.closed:
                 conn.close()
         except Exception:
             pass
-    for conn in [_gestion_conn, _gestionbw_conn, _nap_conn]:
+    for conn in [_gestion_conn, _gestionbw_conn, _nap_conn, _odoo_conn]:
         try:
             if conn and conn.is_connected():
                 conn.close()
