@@ -10,6 +10,7 @@ import logging
 from datetime import date
 from dotenv import load_dotenv
 from db import get_records_conn, get_gestion_conn, get_mesa_conn
+from utils import _print_dry_run_table
 
 load_dotenv()
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
@@ -71,7 +72,9 @@ if rows:
     ]
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] evolucion: insertaría %d filas en evolucion_obras", len(values))
+            _print_dry_run_table("NUEVA EVOLUCIÓN CONTRACTUAL WESTNET (evolucion_obras)", 
+                                 ["fecha", "codigo_cliente", "inicio_contrato", "monto_abonado", "monto_facturado", "cont_estado", "fin_contrato", "cus_categoria"], 
+                                 values)
         else:
             cur.executemany(
                 """
@@ -105,7 +108,9 @@ if lista:
     values_mesa = [("true", r[1], r[0]) for r in lista]
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] evolucion mesa: actualizaría %d filas", len(values_mesa))
+            _print_dry_run_table("ACTUALIZAR CAMBIO TECNOLOGIA MESA WESTNET (evolucion_obras)", 
+                                 ["cambio_tecnologia", "fecha_cambio_tec", "codigo_cliente"], 
+                                 values_mesa)
         else:
             cur.executemany(
                 """
@@ -168,7 +173,9 @@ for cli, fecha in clientes_fecha:
 if updates:
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] evolucion montos: actualizaría %d filas", len(updates))
+            _print_dry_run_table("ACTUALIZAR MONTOS WESTNET (evolucion_obras)", 
+                                 ["monto_abonado", "monto_facturado", "codigo_cliente", "fecha"], 
+                                 updates)
         else:
             cur.executemany(
                 """

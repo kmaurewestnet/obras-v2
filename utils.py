@@ -27,6 +27,32 @@ DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
 log = logging.getLogger(__name__)
 
+def _print_dry_run_table(title: str, headers: List[str], rows: List[tuple]):
+    """Imprime una tabla en los logs con los datos de las operaciones DRY_RUN."""
+    log.info(f"=== [DRY_RUN] {title} ({len(rows)} filas) ===")
+    if not rows:
+        return
+        
+    # Convertir todo a string manejando None
+    str_rows = [tuple(str(val) if val is not None else "NULL" for val in row) for row in rows]
+    
+    # Calcular anchos de columna
+    col_widths = [len(h) for h in headers]
+    for row in str_rows:
+        for i, val in enumerate(row):
+            if i < len(col_widths):
+                col_widths[i] = max(col_widths[i], len(val))
+    
+    # Formato de fila
+    row_format = " | ".join([f"{{:<{w}}}" for w in col_widths])
+    
+    # Imprimir encabezado y datos
+    log.info(row_format.format(*headers))
+    log.info("-" * (sum(col_widths) + 3 * (len(headers) - 1)))
+    for row in str_rows:
+        log.info(row_format.format(*row))
+    log.info("==================================================\n")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECCIÓN 1 — Obras desde Odoo DB
@@ -88,7 +114,9 @@ def cardid_details(ids: list):
     with conn_rec.cursor() as cur:
         try:
             if DRY_RUN:
-                log.info("[DRY_RUN] cardid_details: insertaría %d filas en cards", len(values))
+                _print_dry_run_table("NUEVAS OBRAS (cards)", 
+                                     ["list_id", "card_id", "list_name", "card_name"], 
+                                     values)
             else:
                 # execute_values is a psycopg2 function. For MySQL, we'd typically use executemany
                 # or a custom batch insert if the driver doesn't support execute_values directly.
@@ -164,7 +192,9 @@ def card_descriptions(ids: list):
     with conn_rec.cursor() as cur:
         try:
             if DRY_RUN:
-                log.info("[DRY_RUN] card_descriptions: upsertaría %d filas", len(values))
+                _print_dry_run_table("UPSERT DESCRIPCIONES (card_description)", 
+                                     ["card_id", "nombre_obra", "tipo_obra", "geo", "cantidad", "posteo", "fecha_presupuesto", "valor_presupuesto", "naps", "solicitado_por"], 
+                                     values)
             else:
                 execute_values(
                     cur,
@@ -294,7 +324,9 @@ def get_naps():
     conn = get_records_conn()
     with conn.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_naps: upsertaría %d filas en naps_obras", len(values))
+            _print_dry_run_table("NUEVAS NAPS (naps_obras)", 
+                                 ["nap", "bocas", "ocupacion", "precinto", "codigo_cliente", "id"], 
+                                 values)
         else:
             execute_values(
                 cur,
@@ -325,7 +357,9 @@ def get_naps_ocupacion():
     conn = get_records_conn()
     with conn.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_naps_ocupacion: actualizaría %d filas", len(values))
+            _print_dry_run_table("ACTUALIZAR NAPS EXISTENTES (naps_obras)", 
+                                 ["ocupacion", "bocas", "nap"], 
+                                 values)
         else:
             cur.executemany(
                 "UPDATE naps_obras SET ocupacion = %s, bocas = %s WHERE nap = %s;",
@@ -371,7 +405,9 @@ def get_vnos():
     conn_rec = get_records_conn()
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_vnos: actualizaría %d filas", len(values))
+            _print_dry_run_table("ACTUALIZAR VNOs (naps_obras)", 
+                                 ["empresa", "fecha_alta", "fecha_baja", "id"], 
+                                 values)
         else:
             cur.executemany(
                 """
@@ -424,7 +460,9 @@ def get_fechas():
     conn_rec = get_records_conn()
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_fechas: actualizaría %d filas", len(values))
+            _print_dry_run_table("ACTUALIZAR FECHAS DE ALTA WESTNET (naps_obras)", 
+                                 ["fecha_alta", "codigo_cliente"], 
+                                 values)
         else:
             cur.executemany(
                 "UPDATE naps_obras SET fecha_alta = %s WHERE codigo_cliente = %s;",
@@ -473,7 +511,9 @@ def get_fechas_bw():
     conn_rec = get_records_conn()
     with conn_rec.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_fechas_bw: actualizaría %d filas", len(values))
+            _print_dry_run_table("ACTUALIZAR FECHAS DE ALTA BIGWAY (naps_obras)", 
+                                 ["fecha_alta", "codigo_cliente"], 
+                                 values)
         else:
             cur.executemany(
                 "UPDATE naps_obras SET fecha_alta = %s WHERE codigo_cliente = %s;",
@@ -511,7 +551,9 @@ def add_card_ids():
     values = [(row[1], row[0]) for row in rows]
     with conn.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] add_card_ids: actualizaría %d filas", len(values))
+            _print_dry_run_table("ASOCIAR CARD IDs (naps_obras)", 
+                                 ["card_id", "nap"], 
+                                 values)
         else:
             cur.executemany(
                 "UPDATE naps_obras SET card_id = %s WHERE nap = %s;",
@@ -543,7 +585,9 @@ def get_naps_obras():
     values = [(row[0], row[1]) for row in rows]
     with conn.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_naps_obras: insertaría %d filas", len(values))
+            _print_dry_run_table("NUEVAS NAPS (nap_ocupacion_obras)", 
+                                 ["card_id", "nap"], 
+                                 values)
         else:
             execute_values(
                 cur,
@@ -574,7 +618,9 @@ def get_ocupacion():
     values = [(d["ocupacion"], d["bocas"], d["nap"]) for d in detalles]
     with conn.cursor() as cur:
         if DRY_RUN:
-            log.info("[DRY_RUN] get_ocupacion: actualizaría %d filas", len(values))
+            _print_dry_run_table("ACTUALIZAR OCUPACION (nap_ocupacion_obras)", 
+                                 ["ocupacion", "bocas", "nap"], 
+                                 values)
         else:
             cur.executemany(
                 "UPDATE nap_ocupacion_obras SET ocupacion = %s, bocas = %s WHERE nap = %s;",

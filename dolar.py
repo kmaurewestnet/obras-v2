@@ -9,6 +9,7 @@ import requests
 from datetime import date, timedelta
 from dotenv import load_dotenv
 from db import get_records_conn
+from utils import _print_dry_run_table
 
 load_dotenv()
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
@@ -38,7 +39,9 @@ venta = data["venta"]
 conn = get_records_conn()
 with conn.cursor() as cur:
     if DRY_RUN:
-        log.info("[DRY_RUN] dolar: insertaría fecha=%s compra=%s venta=%s", fecha_d, compra, venta)
+        _print_dry_run_table("COTIZACIÓN DÓLAR OFICIAL (dolar_oficial)", 
+                             ["fecha", "compra", "venta"], 
+                             [(fecha_d, compra, venta)])
     else:
         try:
             cur.execute(
