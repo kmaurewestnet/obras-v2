@@ -11,17 +11,21 @@ y registra todo en la base de datos `records`.
 
 ### Flujo general
 
+### Flujo general
+
+El nuevo esquema arquitectónico (v2) funciona como un embudo que procesa **únicamente obras finalizadas**:
+
 ```
-Odoo DB (datosodoo)
-    └── odoo_tasks / odoo_task_properties
-            │
-            ▼
-    records.cards / card_description
-            │
-            ├── Soldef → naps_obras (NAPs, ocupación, clientes)
-            ├── Napear → naps_obras (VNOs, fechas)
-            ├── Gestion Westnet → naps_obras (fechas de alta)
-            └── Gestion Bigway  → naps_obras (fechas de alta BWA)
+Odoo DB (datosodoo) + Odoo API (XML-RPC)
+    Obtención de IDs locales + Filtro de Etapa "OBRAS FINALIZADAS"
+             │
+             ▼
+    records.cards / card_description (solo obras 100% terminadas)
+             │
+             ├── Soldef → naps_obras (NAPs, ocupación, clientes)
+             ├── Napear → naps_obras (VNOs, fechas)
+             ├── Gestion Westnet → naps_obras (fechas de alta)
+             └── Gestion Bigway  → naps_obras (fechas de alta BWA)
 ```
 
 Además, `evolucion.py` y `evolucion_bw.py` registran la evolución contractual
@@ -35,6 +39,8 @@ mensual de cada cliente, y `dolar.py` guarda la cotización oficial del dólar.
 |---|---|
 | `main.py` | Punto de entrada principal |
 | `utils.py` | Funciones de negocio (obras, NAPs, ocupación) |
+| `odoo_api.py` | Cliente XML-RPC para validación de etapas en Odoo |
+| `test_odoo_api.py` | Script de prueba de conexión a la API de Odoo |
 | `evolucion.py` | Evolución contractual clientes Westnet |
 | `evolucion_bw.py` | Evolución contractual clientes Bigway |
 | `dolar.py` | Cotización dólar oficial del día |
@@ -107,13 +113,9 @@ En modo DRY_RUN todos los cambios que se harían se logean con el prefijo `[DRY_
 
 ## Notas importantes
 
-- `add_card_fin_obra()` está **deshabilitada temporalmente**: la DB local de Odoo  
-  (`datosodoo`) no contiene las etapas de las tareas, por lo que no es posible  
-  determinar automáticamente el fin de obra. Se habilitará cuando las etapas  
-  estén disponibles.
+- **Filtro de Obras Finalizadas**: Gracias a la integración con la API de Odoo (`odoo_api.py`), el script consulta en tiempo real cuáles obras están en el stage "OBRAS FINALIZADAS". Ya no se importan proyectos en curso a la base de datos `records`, optimizando la carga y dando de baja funciones legacy como `add_card_fin_obra()`.
 
-- Los scripts **deben ejecutarse desde el servidor Debian** donde hay acceso  
-  a las redes internas (`172.16.x.x`, `172.27.x.x`, etc.).
+- Los scripts **deben ejecutarse desde el servidor local** donde hay acceso directo y VPN a las redes internas del laboratorio y de Napear/Soldef (`172.16.x.x`, `172.27.x.x`, etc.). Si se ejecutan por fuera sin túneles, causarán un Error de TCP (10060 - Timeout).
 
 ---
 
