@@ -9,6 +9,7 @@ Todas las conexiones provienen del módulo db.py (sin N+1 connections).
 import os
 import logging
 import requests
+from typing import List
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 from db import (
@@ -257,7 +258,7 @@ def _query_soldef_naps(naps_list: list) -> list:
 # SECCIÓN 3 — Funciones principales
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _get_all_naps_from_records() -> list[str]:
+def _get_all_naps_from_records() -> List[str]:
     """Lee todas las NAPs de card_description y retorna lista de etiquetas."""
     conn = get_records_conn()
     with conn.cursor() as cur:
