@@ -45,7 +45,6 @@ mensual de cada cliente, y `dolar.py` guarda la cotización oficial del dólar.
 | `evolucion_bw.py` | Evolución contractual clientes Bigway |
 | `dolar.py` | Cotización dólar oficial del día |
 | `db.py` | Módulo de conexiones DB centralizadas |
-| `.env` | Credenciales (**no se sube al repo**) |
 | `.env.example` | Plantilla de variables de entorno |
 | `requirements.txt` | Dependencias Python |
 
@@ -60,7 +59,7 @@ git clone <url-del-repo>
 cd obras
 ```
 
-### 2. Crear entorno virtual (recomendado)
+### 2. Crear entorno virtual
 
 ```bash
 python3 -m venv venv
@@ -78,7 +77,7 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-nano .env   # Completar con valores reales
+nano .env  
 ```
 
 ---
@@ -91,7 +90,7 @@ nano .env   # Completar con valores reales
 python3 main.py
 ```
 
-### Modo DRY_RUN (sin escribir en DB)
+### Modo DRY_RUN 
 
 ```bash
 # Opción 1: variable de entorno inline
@@ -103,19 +102,10 @@ DRY_RUN=true
 
 En modo DRY_RUN todos los cambios que se harían se logean con el prefijo `[DRY_RUN]` pero **no se ejecuta ningún INSERT ni UPDATE**.
 
-### Cron (ejecución mensual, día 28)
-
-```cron
-0 6 28 * * cd /ruta/al/proyecto && python3 main.py >> /var/log/obras.log 2>&1
-```
-
----
 
 ## Notas importantes
 
-- **Filtro de Obras Finalizadas**: Gracias a la integración con la API de Odoo (`odoo_api.py`), el script consulta en tiempo real cuáles obras están en el stage "OBRAS FINALIZADAS". Ya no se importan proyectos en curso a la base de datos `records`, optimizando la carga y dando de baja funciones legacy como `add_card_fin_obra()`.
-
-- Los scripts **deben ejecutarse desde el servidor local** donde hay acceso directo y VPN a las redes internas del laboratorio y de Napear/Soldef (`172.16.x.x`, `172.27.x.x`, etc.). Si se ejecutan por fuera sin túneles, causarán un Error de TCP (10060 - Timeout).
+- **Filtro de Obras Finalizadas**: Gracias a la integración con la API de Odoo (`odoo_api.py`), el script consulta en tiempo real cuáles obras están en el stage "OBRAS FINALIZADAS".
 
 ---
 
