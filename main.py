@@ -21,11 +21,12 @@ from utils import (
     get_fechas,
     get_fechas_bw,
     add_card_ids,
-    add_card_fin_obra,
     get_naps_ocupacion,
     get_naps_obras,
     get_ocupacion,
 )
+from odoo_api import get_obras_finalizadas_ids
+
 
 load_dotenv()
 
@@ -45,19 +46,25 @@ if DRY_RUN:
 try:
     # ── 1. Sincronizar obras desde Odoo DB → records ──────────────────────────
     log.info("Obteniendo lista de obras desde Odoo DB...")
-    odoo_ids = cardid_list()
-    rec_ids = cardid_rec_list()
-    log.info("Odoo: %d obras | Records: %d registros", len(odoo_ids), len(rec_ids))
+    odoo_ids_todos = cardid_list()
+    
+    log.info("Filtrando por etapa 'OBRAS FINALIZADAS' vía API de Odoo...")
+    odoo_ids = get_obras_finalizadas_ids(odoo_ids_todos)
+    if not odoo_ids:
+        log.warning("No hay obras finalizadas nuevas o falló la API. Saltando inserción de obras...")
+    else:
+        rec_ids = cardid_rec_list()
+        log.info("Odoo Total: %d | Finalizadas: %d | Records DB: %d", len(odoo_ids_todos), len(odoo_ids), len(rec_ids))
 
-    ids_nuevos = [i for i in odoo_ids if i not in set(rec_ids)]
-    ids_actualizar = odoo_ids  # actualizar descripción de todas
+        ids_nuevos = [i for i in odoo_ids if i not in set(rec_ids)]
+        ids_actualizar = odoo_ids  # actualizar descripción de todas
 
-    if ids_nuevos:
-        log.info("Insertando %d obras nuevas en cards...", len(ids_nuevos))
-        cardid_details(ids_nuevos)
+        if ids_nuevos:
+            log.info("Insertando %d obras nuevas en cards...", len(ids_nuevos))
+            cardid_details(ids_nuevos)
 
-    log.info("Actualizando descripciones de %d obras...", len(ids_actualizar))
-    card_descriptions(ids_actualizar)
+        log.info("Actualizando descripciones de %d obras...", len(ids_actualizar))
+        card_descriptions(ids_actualizar)
 
     # ── 2. NAPs ───────────────────────────────────────────────────────────────
     log.info("Cargando datos de NAPs desde Soldef...")
@@ -75,10 +82,7 @@ try:
     log.info("Asociando card_id a naps_obras...")
     add_card_ids()
 
-    # ── 3. Fin de obra (deshabilitado temporalmente) ──────────────────────────
-    add_card_fin_obra()
-
-    # ── 4. Ocupación ─────────────────────────────────────────────────────────
+    # ── 3. Ocupación ─────────────────────────────────────────────────────────
     log.info("Actualizando ocupación de NAPs...")
     get_naps_ocupacion()
 

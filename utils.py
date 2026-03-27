@@ -109,7 +109,7 @@ def cardid_details(ids: list):
         return 1
 
     # Batch insert a records
-    values = [(row[0], row[0], "Odoo", row[1]) for row in rows]
+    values = [(row[0], row[0], "Obras Finalizadas", row[1]) for row in rows]
     conn_rec = get_records_conn()
     with conn_rec.cursor() as cur:
         try:
@@ -220,14 +220,6 @@ def card_descriptions(ids: list):
             log.error("card_descriptions — error UPSERT records: %s", exc)
             return 1
     return 0
-
-
-def add_card_fin_obra():
-    """
-    DESHABILITADA temporalmente: la DB datosodoo no contiene etapas de Odoo,
-    por lo que no se puede determinar el fin de obra.
-    """
-    log.warning("add_card_fin_obra: deshabilitada (sin etapas en DB Odoo local).")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
